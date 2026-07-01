@@ -54,8 +54,23 @@ export default async (req) => {
   }
 
   if (req.method === "DELETE") {
-    const store = getStore(STORE_NAME);
+    // Écrit un objet vide, puis relit immédiatement pour confirmer que le
+    // store a bien persisté la suppression avant de répondre.
     await store.set(KEY, JSON.stringify({}));
+    const verify = await store.get(KEY, { type: "json" });
+    const cleared =
+      verify && typeof verify === "object" && Object.keys(verify).length === 0;
+    if (!cleared) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "La réinitialisation n'a pas pu être confirmée par le stockage.",
+          data: verify || {},
+        },
+        500,
+      );
+    }
     return jsonResponse({ success: true, data: {} });
   }
 

@@ -643,6 +643,69 @@ main {
   flex-shrink: 0;
 }
 
+/* --- Barre de vote global (un seul bouton pour toute la grille) --- */
+.global-submit-bar {
+  position: sticky;
+  bottom: 18px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: 0 20px 40px -18px rgba(36, 33, 29, .35);
+  z-index: 5;
+}
+
+.gsb-status {
+  font-size: 13.5px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 200px;
+}
+
+.btn-submit-all {
+  border: none;
+  background: var(--orange);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter .15s ease, transform .15s ease;
+}
+
+.btn-submit-all:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.btn-submit-all:active:not(:disabled) {
+  transform: scale(.97);
+}
+
+.btn-submit-all:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .global-submit-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-submit-all {
+    width: 100%;
+  }
+}
+
 /* ===========================================================
    History / admin
 =========================================================== */

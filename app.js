@@ -250,10 +250,6 @@ function renderCategoryGrid() {
         <span class="char-count" data-role="charcount">0 / ${COMMENT_MAX}</span>
       </div>
 
-      <button class="btn-submit" data-role="submit" data-cat="${cat.id}" ${voted ? "disabled" : "disabled"}>
-        ${voted ? "Vote déjà envoyé aujourd'hui" : "Envoyer mon vote"}
-      </button>
-
       <div class="card-status" data-role="status"></div>
     </article>`;
   }).join("");
@@ -264,11 +260,9 @@ function renderCategoryGrid() {
   grid
     .querySelectorAll("textarea[data-cat]")
     .forEach((ta) => ta.addEventListener("input", onCommentInput));
-  grid
-    .querySelectorAll('[data-role="submit"]')
-    .forEach((btn) => btn.addEventListener("click", onSubmitVote));
 
   updateAllCardStats();
+  updateGlobalSubmitBar();
 }
 
 function updateAllCardStats() {
@@ -317,7 +311,8 @@ function onSelectValue(e) {
     .forEach((b) =>
       b.classList.toggle("selected", Number(b.dataset.v) === value),
     );
-  card.querySelector('[data-role="submit"]').disabled = false;
+
+  updateGlobalSubmitBar();
 }
 
 function onCommentInput(e) {
@@ -327,35 +322,81 @@ function onCommentInput(e) {
     `${ta.value.length} / ${COMMENT_MAX}`;
 }
 
-async function onSubmitVote(e) {
-  const btn = e.currentTarget;
-  const catId = btn.dataset.cat;
-  if (hasVotedToday(catId)) return;
-  const value = selectedValues[catId];
-  if (!value) return;
+/* ---------------------------------------------------------------------
+   Vote global — un seul bouton envoie toutes les catégories notées
+--------------------------------------------------------------------- */
+function remainingCategories() {
+  return CATEGORIES.filter((cat) => !hasVotedToday(cat.id));
+}
 
-  const card = document.querySelector(`.card[data-cat="${catId}"]`);
-  const comment = card
-    .querySelector(`textarea[data-cat="${catId}"]`)
-    .value.trim()
-    .slice(0, COMMENT_MAX);
+function pendingCategories() {
+  return remainingCategories().filter((cat) => selectedValues[cat.id]);
+}
 
-  card.querySelectorAll(".vote-btn").forEach((b) => (b.disabled = true));
-  card.querySelector(`textarea[data-cat="${catId}"]`).disabled = true;
+function updateGlobalSubmitBar() {
+  const bar = document.getElementById("global-submit-bar");
+  const status = document.getElementById("gsb-status");
+  const btn = document.getElementById("submit-all-btn");
+  if (!bar || !status || !btn) return;
+
+  const remaining = remainingCategories();
+  const pending = pendingCategories();
+
+  if (remaining.length === 0) {
+    status.textContent =
+      "Merci, votre vote du jour a été pris en compte pour tous les volets.";
+    btn.disabled = true;
+    btn.textContent = "Vote déjà envoyé aujourd'hui";
+    return;
+  }
+
+  btn.disabled = pending.length !== remaining.length;
+  btn.textContent = "Envoyer mon vote";
+
+  if (pending.length === 0) {
+    status.textContent = `Choisissez une note pour ${remaining.length > 1 ? "chaque volet" : "le volet"}, puis envoyez.`;
+  } else if (pending.length < remaining.length) {
+    const missing = remaining.length - pending.length;
+    status.textContent = `Il reste ${missing} volet${missing > 1 ? "s" : ""} à noter avant d'envoyer.`;
+  } else {
+    status.textContent = "Toutes les notes sont prêtes. Envoyez votre vote.";
+  }
+}
+
+async function onSubmitAll() {
+  const remaining = remainingCategories();
+  if (remaining.length === 0) return;
+  const pending = pendingCategories();
+  if (pending.length !== remaining.length) return; // pas toutes les catégories notées
+
+  const btn = document.getElementById("submit-all-btn");
+  const status = document.getElementById("gsb-status");
   btn.disabled = true;
   btn.textContent = "Envoi…";
+  status.textContent = "Envoi de votre vote en cours…";
 
-  await submitVote(catId, value, comment);
-  markVotedToday(catId);
+  document.querySelectorAll(".vote-btn").forEach((b) => (b.disabled = true));
+  document
+    .querySelectorAll("textarea[data-cat]")
+    .forEach((ta) => (ta.disabled = true));
 
-  const badge = card.querySelector('[data-role="badge"]');
-  if (badge) badge.remove();
-  btn.textContent = "Vote déjà envoyé aujourd'hui";
+  for (const cat of pending) {
+    const card = document.querySelector(`.card[data-cat="${cat.id}"]`);
+    const comment = card
+      .querySelector(`textarea[data-cat="${cat.id}"]`)
+      .value.trim()
+      .slice(0, COMMENT_MAX);
 
-  updateCardStats(catId, todayStr());
-  showToast(
-    `Vote enregistré pour « ${CATEGORIES.find((c) => c.id === catId).label} »`,
-  );
+    await submitVote(cat.id, selectedValues[cat.id], comment);
+    markVotedToday(cat.id);
+
+    const badge = card.querySelector('[data-role="badge"]');
+    if (badge) badge.remove();
+    updateCardStats(cat.id, todayStr());
+  }
+
+  updateGlobalSubmitBar();
+  showToast("Votre vote a été enregistré. Merci !");
 }
 
 /* ---------------------------------------------------------------------
@@ -390,6 +431,7 @@ async function refreshData({ silent } = {}) {
 
   store = fresh;
   updateAllCardStats();
+  updateGlobalSubmitBar();
 
   if (!silent) {
     setLastSeenTotal(newTotal);
@@ -415,6 +457,9 @@ async function init() {
   document
     .getElementById("refresh-btn")
     .addEventListener("click", () => refreshData({ silent: false }));
+  document
+    .getElementById("submit-all-btn")
+    .addEventListener("click", onSubmitAll);
   setInterval(() => refreshData({ silent: true }), 25000);
 }
 

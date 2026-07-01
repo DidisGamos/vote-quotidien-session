@@ -31,6 +31,7 @@ const SCALE_COLORS = {
 let store = {};
 let currentCategory = CATEGORIES[0].id;
 let modalState = null;
+let justReset = false;
 
 function todayStr() {
   const d = new Date();
@@ -355,7 +356,14 @@ function closeModal() {
   modalState = null;
 }
 
-function showModal({ title, message, confirmLabel = "OK", cancelLabel = null, onConfirm = null, onCancel = null }) {
+function showModal({
+  title,
+  message,
+  confirmLabel = "OK",
+  cancelLabel = null,
+  onConfirm = null,
+  onCancel = null,
+}) {
   const modal = document.getElementById("admin-modal");
   const titleEl = document.getElementById("admin-modal-title");
   const messageEl = document.getElementById("admin-modal-message");
@@ -405,39 +413,69 @@ async function handleResetConfirmed() {
   btn.classList.add("spinning");
   closeModal();
 
-  try {
-    try {
-      const res = await fetch(API_URL, {
-        method: "DELETE",
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error("bad status " + res.status);
-    } catch {
-      // Le backend Netlify peut ne pas être disponible localement ;
-      // la réinitialisation se fait alors localement via le stockage de secours.
-    }
+  let serverConfirmed = false;
 
-    store = {};
-    clearLocalFallback();
-    renderDateSelect();
-    renderAll();
+  try {
+    const res = await fetch(API_URL, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error("bad status " + res.status);
+
+    // Ne pas se contenter de la réponse du DELETE : revérifier avec un GET
+    // pour confirmer que le backend a bien persisté la réinitialisation
+    // avant d'annoncer un succès (certains environnements — ex. Vercel sans
+    // Netlify Blobs — répondent 200 sans réellement écrire les données).
+    const verify = await fetch(API_URL, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (verify.ok) {
+      const verifyData = await verify.json();
+      const stillHasData =
+        verifyData &&
+        Object.keys(verifyData).some(
+          (cat) => Object.keys(verifyData[cat] || {}).length > 0,
+        );
+      serverConfirmed = !stillHasData;
+    }
+  } catch {
+    // Le backend peut ne pas être disponible (ex. hors Netlify) ;
+    // la réinitialisation se fait alors localement via le stockage de secours.
+  }
+
+  store = {};
+  clearLocalFallback();
+  justReset = true;
+  renderDateSelect();
+  renderAll();
+
+  if (serverConfirmed) {
     showModal({
       title: "Réinitialisation effectuée",
       message: "Toutes les données de votes et commentaires ont été effacées.",
       confirmLabel: "OK",
       onConfirm: closeModal,
     });
-  } catch {
+  } else {
     showModal({
-      title: "Échec de la réinitialisation",
-      message: "La réinitialisation a échoué. Veuillez réessayer.",
-      confirmLabel: "OK",
+      title: "Réinitialisation locale uniquement",
+      message:
+        "L'affichage a été vidé, mais le serveur n'a pas confirmé l'effacement (le backend Netlify Blobs n'est peut-être pas disponible sur cet hébergement). Les données pourraient réapparaître au prochain rafraîchissement. Vérifiez l'hébergement de l'API /api/votes.",
+      confirmLabel: "Compris",
       onConfirm: closeModal,
     });
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove("spinning");
   }
+
+  btn.disabled = false;
+  btn.classList.remove("spinning");
+
+  // Laisse le temps au store distant de se stabiliser avant de reprendre
+  // le rafraîchissement automatique, pour éviter qu'un ancien GET encore
+  // en cache ne réaffiche les données supprimées.
+  setTimeout(() => {
+    justReset = false;
+  }, 10000);
 }
 
 async function init() {
@@ -448,24 +486,29 @@ async function init() {
   renderAll();
   document.getElementById("refresh-btn").addEventListener("click", refresh);
   document.getElementById("reset-btn").addEventListener("click", resetData);
-  document.getElementById("admin-modal-confirm").addEventListener("click", () => {
-    if (modalState?.onConfirm) {
-      modalState.onConfirm();
-    } else {
-      closeModal();
-    }
-  });
-  document.getElementById("admin-modal-cancel").addEventListener("click", () => {
-    if (modalState?.onCancel) {
-      modalState.onCancel();
-    } else {
-      closeModal();
-    }
-  });
+  document
+    .getElementById("admin-modal-confirm")
+    .addEventListener("click", () => {
+      if (modalState?.onConfirm) {
+        modalState.onConfirm();
+      } else {
+        closeModal();
+      }
+    });
+  document
+    .getElementById("admin-modal-cancel")
+    .addEventListener("click", () => {
+      if (modalState?.onCancel) {
+        modalState.onCancel();
+      } else {
+        closeModal();
+      }
+    });
   document.getElementById("admin-modal").addEventListener("click", (event) => {
     if (event.target.id === "admin-modal") closeModal();
   });
   setInterval(() => {
+    if (justReset) return; // évite de réafficher des données obsolètes juste après un reset
     loadData().then((d) => {
       store = d;
       renderAll();
