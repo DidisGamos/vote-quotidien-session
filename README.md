@@ -75,30 +75,24 @@ bascule automatiquement sur un stockage `localStorage` (clé `voteapp_fallback_d
 qui simule le même JSON. Cela permet de tester toute l'interface sans backend, avec
 la limite que les données restent alors propres à ce navigateur.
 
-## Déploiement sur Netlify
+## Déploiement sur Vercel avec Supabase
 
-1. Poussez ce dossier sur un dépôt Git (GitHub/GitLab/Bitbucket), ou déployez-le tel
-   quel via `netlify deploy`.
-2. Sur Netlify : **New site from Git**, ou glissez-déposez le dossier dans
-   l'interface Netlify (déploiement manuel).
-3. Netlify détecte automatiquement `netlify.toml` : le dossier `netlify/functions`
-   est déployé comme fonction serverless, et `@netlify/blobs` (listé dans
-   `package.json`) est installé au build.
-4. Aucune variable d'environnement n'est nécessaire : Netlify Blobs fonctionne "out
-   of the box" pour les fonctions déployées sur Netlify.
-5. Une fois en ligne, testez avec plusieurs navigateurs/appareils : les votes
-   s'additionnent bien dans le même fichier JSON partagé.
+1. Créez la table Supabase avec le SQL fourni dans [supabase/schema.sql](supabase/schema.sql).
+2. Ajoutez la variable d'environnement suivante dans Vercel :
+   - `SUPABASE_CONNECTION_STRING` = votre chaîne de connexion Postgres
+3. Déployez le projet :
+   ```bash
+   npm install
+   npx vercel --prod
+   ```
+4. Une fois en ligne, testez avec plusieurs navigateurs/appareils : les votes
+   s'additionnent bien dans la même base de données partagée.
 
-### Tester en local avec la Netlify CLI (optionnel, pour avoir l'API dès le poste local)
+### Variables d'environnement utiles
+- `SUPABASE_CONNECTION_STRING`
+- `DATABASE_URL` (alternative si vous préférez)
 
-```bash
-npm install -g netlify-cli
-npm install
-netlify dev
-```
-
-`netlify dev` sert le site **et** exécute la fonction `/api/votes` localement avec
-un stockage Blobs de développement.
+Si aucune base n'est configurée, l’API utilise un fichier de secours local pour éviter les erreurs de service.
 
 ## Structure du projet
 
