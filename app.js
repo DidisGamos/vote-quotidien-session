@@ -175,16 +175,21 @@ async function submitVote(catId, value, comment) {
   }
 
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        category: catId,
-        value,
-        date,
-        comment: comment || "",
-      }),
-    });
+    let res;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: catId,
+          value,
+          date,
+          comment: comment || "",
+        }),
+      });
+      if (res.status !== 503) break; // 503 = conflit d'écriture temporaire, on retente
+      await new Promise((r) => setTimeout(r, 150 + Math.random() * 200));
+    }
     if (!res.ok) throw new Error("bad status " + res.status);
     const payload = await res.json();
     if (payload && payload.data) store = payload.data;

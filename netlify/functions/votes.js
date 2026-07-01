@@ -45,6 +45,49 @@ function sanitizeComment(raw) {
     .slice(0, COMMENT_MAX);
 }
 
+// Netlify Blobs n'a AUCUN mécanisme de concurrence intégré : si deux
+// écritures se chevauchent sur la même clé, la dernière écrase entièrement
+// la précédente ("last write wins" — voir doc officielle). Comme chaque
+// vote fait un cycle lire → modifier → écrire sur le même fichier JSON
+// partagé, plusieurs votes envoyés à quelques millisecondes d'intervalle
+// (ex. les 4 catégories votées à la suite) pouvaient se marcher dessus et
+// faire disparaître les votes précédents.
+//
+// On corrige ça avec un verrouillage optimiste basé sur l'ETag : on lit la
+// donnée + son ETag, on modifie, puis on écrit avec onlyIfMatch (ou
+// onlyIfNew si la clé n'existe pas encore). Si quelqu'un d'autre a écrit
+// entre-temps, l'écriture échoue proprement (modified: false) et on
+// recommence le cycle avec les données fraîches, jusqu'à ce que ça
+// réussisse.
+async function writeWithRetry(store, mutate, maxAttempts = 10) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const current = await store.getWithMetadata(KEY, { type: "json" });
+    const data = (current && current.data) || {};
+    const etag = current ? current.etag : null;
+
+    const nextData = mutate(data);
+
+    const writeOptions = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
+    const { modified } = await store.set(
+      KEY,
+      JSON.stringify(nextData),
+      writeOptions,
+    );
+
+    if (modified) return nextData;
+
+    // Conflit : une autre requête a écrit entre notre lecture et notre
+    // écriture. On réessaie avec un léger délai aléatoire pour éviter que
+    // plusieurs tentatives ne se re-percutent en boucle.
+    await new Promise((resolve) =>
+      setTimeout(resolve, 30 + Math.random() * 70),
+    );
+  }
+  throw new Error(
+    "Impossible d'enregistrer après plusieurs tentatives (trop de conflits concurrents).",
+  );
+}
+
 export default async (req) => {
   // consistency: "strong" force chaque lecture à refléter la toute dernière
   // écriture. Sans cela, Netlify Blobs utilise une cohérence "éventuelle" :
@@ -101,20 +144,32 @@ export default async (req) => {
       return jsonResponse({ error: "Requête invalide" }, 400);
     }
 
-    const data = (await store.get(KEY, { type: "json" })) || {};
-    if (!data[category]) data[category] = {};
-    if (!data[category][date]) data[category][date] = emptyDay();
+    let data;
+    try {
+      data = await writeWithRetry(store, (current) => {
+        if (!current[category]) current[category] = {};
+        if (!current[category][date]) current[category][date] = emptyDay();
 
-    const day = data[category][date];
-    day.counts[String(numValue)] = (day.counts[String(numValue)] || 0) + 1;
+        const day = current[category][date];
+        day.counts[String(numValue)] = (day.counts[String(numValue)] || 0) + 1;
 
-    const cleanComment = sanitizeComment(comment);
-    if (cleanComment) {
-      if (!Array.isArray(day.comments)) day.comments = [];
-      day.comments.push({ v: numValue, text: cleanComment });
+        const cleanComment = sanitizeComment(comment);
+        if (cleanComment) {
+          if (!Array.isArray(day.comments)) day.comments = [];
+          day.comments.push({ v: numValue, text: cleanComment });
+        }
+
+        return current;
+      });
+    } catch (err) {
+      return jsonResponse(
+        {
+          error:
+            "Trop de votes simultanés, veuillez réessayer dans un instant.",
+        },
+        503,
+      );
     }
-
-    await store.set(KEY, JSON.stringify(data));
 
     return jsonResponse({ success: true, data });
   }
