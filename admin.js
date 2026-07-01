@@ -6,6 +6,8 @@
 
 const API_URL = "/api/votes";
 const LOCAL_FALLBACK_KEY = "voteapp_fallback_data_v2";
+const LAST_VOTE_KEY = "voteapp_last_vote_v2";
+const LAST_SEEN_TOTAL_KEY = "voteapp_last_seen_total_v2";
 
 const CATEGORIES = [
   { id: "sakafo", label: "Sakafo", accent: "var(--orange)" },
@@ -28,6 +30,7 @@ const SCALE_COLORS = {
 
 let store = {};
 let currentCategory = CATEGORIES[0].id;
+let modalState = null;
 
 function todayStr() {
   const d = new Date();
@@ -72,6 +75,16 @@ function readLocalFallback() {
     return JSON.parse(localStorage.getItem(LOCAL_FALLBACK_KEY)) || {};
   } catch {
     return {};
+  }
+}
+
+function clearLocalFallback() {
+  try {
+    localStorage.removeItem(LOCAL_FALLBACK_KEY);
+    localStorage.removeItem(LAST_VOTE_KEY);
+    localStorage.removeItem(LAST_SEEN_TOTAL_KEY);
+  } catch {
+    // Ignore storage issues in private mode or restricted environments.
   }
 }
 
@@ -334,6 +347,38 @@ function initTabs() {
   });
 }
 
+function closeModal() {
+  const modal = document.getElementById("admin-modal");
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  modalState = null;
+}
+
+function showModal({ title, message, confirmLabel = "OK", cancelLabel = null, onConfirm = null, onCancel = null }) {
+  const modal = document.getElementById("admin-modal");
+  const titleEl = document.getElementById("admin-modal-title");
+  const messageEl = document.getElementById("admin-modal-message");
+  const confirmBtn = document.getElementById("admin-modal-confirm");
+  const cancelBtn = document.getElementById("admin-modal-cancel");
+  const cancelWrap = cancelBtn.parentElement;
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  confirmBtn.textContent = confirmLabel;
+
+  if (cancelLabel) {
+    cancelWrap.hidden = false;
+    cancelBtn.textContent = cancelLabel;
+  } else {
+    cancelWrap.hidden = true;
+  }
+
+  modalState = { onConfirm, onCancel };
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
 async function refresh() {
   const btn = document.getElementById("refresh-btn");
   btn.classList.add("spinning");
@@ -343,6 +388,58 @@ async function refresh() {
   setTimeout(() => btn.classList.remove("spinning"), 500);
 }
 
+function resetData() {
+  showModal({
+    title: "Réinitialiser les données ?",
+    message:
+      "Cette action supprimera tous les votes et commentaires enregistrés. Les catégories et la logique de l’administration resteront intactes.",
+    confirmLabel: "Confirmer",
+    cancelLabel: "Annuler",
+    onConfirm: handleResetConfirmed,
+  });
+}
+
+async function handleResetConfirmed() {
+  const btn = document.getElementById("reset-btn");
+  btn.disabled = true;
+  btn.classList.add("spinning");
+  closeModal();
+
+  try {
+    try {
+      const res = await fetch(API_URL, {
+        method: "DELETE",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) throw new Error("bad status " + res.status);
+    } catch {
+      // Le backend Netlify peut ne pas être disponible localement ;
+      // la réinitialisation se fait alors localement via le stockage de secours.
+    }
+
+    store = {};
+    clearLocalFallback();
+    renderDateSelect();
+    renderAll();
+    showModal({
+      title: "Réinitialisation effectuée",
+      message: "Toutes les données de votes et commentaires ont été effacées.",
+      confirmLabel: "OK",
+      onConfirm: closeModal,
+    });
+  } catch {
+    showModal({
+      title: "Échec de la réinitialisation",
+      message: "La réinitialisation a échoué. Veuillez réessayer.",
+      confirmLabel: "OK",
+      onConfirm: closeModal,
+    });
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("spinning");
+  }
+}
+
 async function init() {
   initTabs();
   renderCatSeg();
@@ -350,6 +447,24 @@ async function init() {
   renderDateSelect();
   renderAll();
   document.getElementById("refresh-btn").addEventListener("click", refresh);
+  document.getElementById("reset-btn").addEventListener("click", resetData);
+  document.getElementById("admin-modal-confirm").addEventListener("click", () => {
+    if (modalState?.onConfirm) {
+      modalState.onConfirm();
+    } else {
+      closeModal();
+    }
+  });
+  document.getElementById("admin-modal-cancel").addEventListener("click", () => {
+    if (modalState?.onCancel) {
+      modalState.onCancel();
+    } else {
+      closeModal();
+    }
+  });
+  document.getElementById("admin-modal").addEventListener("click", (event) => {
+    if (event.target.id === "admin-modal") closeModal();
+  });
   setInterval(() => {
     loadData().then((d) => {
       store = d;

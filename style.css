@@ -221,6 +221,100 @@ body {
   animation: spin .7s linear;
 }
 
+.btn-reset {
+  border-color: #efb7b7;
+  color: #9b2b2b;
+  background: #fff7f7;
+}
+
+.btn-reset:hover {
+  border-color: #d96a6a;
+  background: #ffeaea;
+}
+
+.btn-reset svg {
+  color: #bf4e4e;
+}
+
+.btn-reset:disabled {
+  opacity: .75;
+  cursor: wait;
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(18, 24, 31, 0.68);
+  backdrop-filter: blur(6px);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: min(100%, 440px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 24px 48px rgba(15, 22, 38, 0.24);
+  padding: 24px;
+}
+
+.modal-card h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-head);
+  font-size: 24px;
+  color: var(--ink);
+}
+
+.modal-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease;
+}
+
+.modal-btn:hover {
+  transform: translateY(-1px);
+}
+
+.modal-btn-primary {
+  background: var(--orange);
+  color: #fff;
+}
+
+.modal-btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

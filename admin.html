@@ -42,6 +42,19 @@
           </div>
         </div>
         <div class="head-right">
+          <button class="btn-refresh btn-reset" id="reset-btn" type="button" title="Réinitialiser les données">
+            <svg viewBox="0 0 20 20" width="16" height="16">
+              <path
+                d="M4 6h12M8 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2m2 0v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6h8z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>Réinitialiser</span>
+          </button>
           <button class="btn-refresh" id="refresh-btn" title="Actualiser">
             <svg viewBox="0 0 20 20" width="16" height="16">
               <path
@@ -104,6 +117,17 @@
         <div class="history-list" id="history-list"></div>
       </section>
     </main>
+
+    <div class="modal-overlay" id="admin-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+        <h3 id="admin-modal-title">Titre</h3>
+        <p id="admin-modal-message">Message</p>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn-secondary" id="admin-modal-cancel">Annuler</button>
+          <button type="button" class="modal-btn modal-btn-primary" id="admin-modal-confirm">OK</button>
+        </div>
+      </div>
+    </div>
 
     <footer>
       <p>

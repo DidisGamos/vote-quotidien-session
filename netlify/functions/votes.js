@@ -53,6 +53,12 @@ export default async (req) => {
     return jsonResponse(data);
   }
 
+  if (req.method === "DELETE") {
+    const store = getStore(STORE_NAME);
+    await store.set(KEY, JSON.stringify({}));
+    return jsonResponse({ success: true, data: {} });
+  }
+
   if (req.method === "POST") {
     let body;
     try {
