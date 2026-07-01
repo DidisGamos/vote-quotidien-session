@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Admin &middot; Historique des votes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,560;0,9..144,650;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="admin-body">
+    <div class="dot-field dot-field-tl" aria-hidden="true">
+      <span></span><span></span><span></span> <span></span><span></span
+      ><span></span> <span></span><span></span><span></span>
+    </div>
+
+    <header class="site-head">
+      <div class="head-inner">
+        <div class="brand">
+          <span class="brand-mark admin-mark">
+            <svg viewBox="0 0 24 24" width="18" height="18">
+              <path
+                d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7l8-4z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                fill="none"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <div class="brand-text">
+            <h1>Historique &amp; commentaires</h1>
+            <p>
+              Vue interne &middot; page non répertoriée, à usage de l&#39;équipe
+              organisatrice
+            </p>
+          </div>
+        </div>
+        <div class="head-right">
+          <button class="btn-refresh" id="refresh-btn" title="Actualiser">
+            <svg viewBox="0 0 20 20" width="16" height="16">
+              <path
+                d="M17 10a7 7 0 1 1-2.05-4.95M17 10V4m0 6h-6"
+                stroke="currentColor"
+                stroke-width="1.6"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>Actualiser</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <p class="lead">
+        Toutes les catégories, tous les jours confondus. Les votes restent
+        anonymes : seules les notes et les commentaires laissés sont visibles,
+        jamais l&#39;identité des votants.
+      </p>
+
+      <div class="seg admin-tabs" id="admin-tabs" role="tablist" aria-label="Choisir une vue">
+        <button data-tab="overview" class="active">Vue globale</button>
+        <button data-tab="detail">Détail par volet</button>
+      </div>
+
+      <section id="tab-overview" class="admin-panel">
+        <div class="overview-hero" id="overview-hero"></div>
+
+        <h3 class="section-title">Total de votes par volet</h3>
+        <div class="overview-cats" id="overview-cats"></div>
+
+        <h3 class="section-title">Participation par jour (tous volets confondus)</h3>
+        <div class="history-list" id="overview-daily"></div>
+      </section>
+
+      <section id="tab-detail" class="admin-panel" hidden>
+        <div class="history-controls">
+          <div
+            class="seg"
+            id="history-cat-seg"
+            role="tablist"
+            aria-label="Choisir un volet"
+          ></div>
+          <label class="date-picker">
+            <span>Jour</span>
+            <select id="history-date-select"></select>
+          </label>
+        </div>
+
+        <div class="history-summary" id="history-summary"></div>
+
+        <h3 class="section-title">Commentaires du jour</h3>
+        <div class="comments-list" id="comments-list"></div>
+
+        <h3 class="section-title">Tendance sur les derniers jours</h3>
+        <div class="history-list" id="history-list"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Lien à conserver en privé &mdash; cette page n&#39;est pas liée depuis
+        le site public et ne nécessite pas de connexion.
+      </p>
+    </footer>
+
+    <script src="admin.js"></script>
+  </body>
+</html>
