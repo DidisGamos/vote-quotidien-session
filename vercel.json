@@ -2,9 +2,10 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/votes", "destination": "/api/votes.js" },
-    { "source": "/", "destination": "/api/index" },
-    { "source": "/style.css", "destination": "/style.css" },
-    { "source": "/app.js", "destination": "/app.js" },
-    { "source": "/admin.js", "destination": "/admin.js" }
+    { "source": "/style.css", "destination": "/api/style.js" },
+    { "source": "/app.js", "destination": "/api/app.js" },
+    { "source": "/admin.js", "destination": "/api/admin.js" },
+    { "source": "/admin", "destination": "/api/admin-page" },
+    { "source": "/", "destination": "/api/index" }
   ]
 }
