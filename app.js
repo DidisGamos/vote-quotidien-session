@@ -122,12 +122,10 @@ function writeLastVotes(obj) {
   localStorage.setItem(LAST_VOTE_KEY, JSON.stringify(obj));
 }
 function hasVotedToday(catId) {
-  return readLastVotes()[catId] === todayStr();
+  return false; // Disabled: allow multiple votes per day for multiple users
 }
 function markVotedToday(catId) {
-  const last = readLastVotes();
-  last[catId] = todayStr();
-  writeLastVotes(last);
+  // Disabled: allow multiple votes per day for multiple users
 }
 
 /* ---------------------------------------------------------------------
@@ -226,7 +224,6 @@ function petalGaugeSVG() {
 function renderCategoryGrid() {
   const grid = document.getElementById("category-grid");
   grid.innerHTML = CATEGORIES.map((cat) => {
-    const voted = hasVotedToday(cat.id);
     return `
     <article class="card" style="--card-accent:${cat.accent}" data-cat="${cat.id}">
       <div class="card-head">
@@ -237,7 +234,7 @@ function renderCategoryGrid() {
             <p class="card-sub">${cat.sub}</p>
           </div>
         </div>
-        ${voted ? "" : `<span class="badge-new" data-role="badge">Nouveau vote</span>`}
+        <span class="badge-new" data-role="badge">Nouveau vote</span>
       </div>
 
       <div class="gauge-wrap">
@@ -246,13 +243,13 @@ function renderCategoryGrid() {
       </div>
 
       <div class="vote-row" data-role="votebtns">
-        ${[1, 2, 3, 4, 5].map((v) => `<button class="vote-btn" data-cat="${cat.id}" data-v="${v}" ${voted ? "disabled" : ""}>${v}</button>`).join("")}
+        ${[1, 2, 3, 4, 5].map((v) => `<button class="vote-btn" data-cat="${cat.id}" data-v="${v}">${v}</button>`).join("")}
       </div>
 
       <div class="comment-field">
         <label for="comment-${cat.id}">Commentaire (optionnel)</label>
         <textarea id="comment-${cat.id}" data-cat="${cat.id}" maxlength="${COMMENT_MAX}"
-          placeholder="Votre avis en quelques mots…" ${voted ? "disabled" : ""}></textarea>
+          placeholder="Votre avis en quelques mots…"></textarea>
         <span class="char-count" data-role="charcount">0 / ${COMMENT_MAX}</span>
       </div>
 
