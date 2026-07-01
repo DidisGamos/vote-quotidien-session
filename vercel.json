@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/api/votes", "dest": "/api/votes.js" }
+  "rewrites": [
+    { "source": "/api/votes", "destination": "/api/votes.js" }
   ]
 }
