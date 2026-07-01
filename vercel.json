@@ -1,6 +1,10 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/votes", "destination": "/api/votes.js" }
+    { "source": "/api/votes", "destination": "/api/votes.js" },
+    { "source": "/", "destination": "/api/index" },
+    { "source": "/style.css", "destination": "/style.css" },
+    { "source": "/app.js", "destination": "/app.js" },
+    { "source": "/admin.js", "destination": "/admin.js" }
   ]
 }
