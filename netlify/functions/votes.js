@@ -46,67 +46,40 @@ function sanitizeComment(raw) {
 }
 
 // Netlify Blobs n'a AUCUN mécanisme de concurrence intégré : si deux
-// écritures se chevauchent sur la même clé, la dernière écrase entièrement
-// la précédente ("last write wins" — voir doc officielle). Comme chaque
-// vote fait un cycle lire → modifier → écrire sur le même fichier JSON
-// partagé, plusieurs votes envoyés à quelques millisecondes d'intervalle
-// (ex. les 4 catégories votées à la suite) pouvaient se marcher dessus et
-// faire disparaître les votes précédents.
+// écritures se chevauchent EXACTEMENT sur la même clé, la dernière écrase
+// entièrement la précédente ("last write wins" — voir doc officielle).
 //
-// On corrige ça avec un verrouillage optimiste basé sur l'ETag : on lit la
-// donnée + son ETag, on modifie, puis on écrit avec onlyIfMatch (ou
-// onlyIfNew si la clé n'existe pas encore). Si quelqu'un d'autre a écrit
-// entre-temps, l'écriture échoue proprement (modified: false) et on
-// recommence le cycle avec les données fraîches, jusqu'à ce que ça
-// réussisse.
-async function writeWithRetry(store, mutate, maxAttempts = 10) {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    let current;
-    try {
-      current = await store.getWithMetadata(KEY, { type: "json" });
-    } catch (err) {
-      // Une erreur ICI n'est PAS un conflit d'écriture concurrente : c'est
-      // généralement le signe que Netlify Blobs n'est pas disponible dans cet
-      // environnement (site non déployé sur Netlify, `netlify dev` non lancé
-      // en local, ou fonction exécutée hors du contexte Netlify). On le
-      // propage tel quel au lieu de le confondre avec un conflit d'ETag.
-      err.isBlobsUnavailable = true;
-      throw err;
-    }
-
-    const data = (current && current.data) || {};
-    const etag = current ? current.etag : null;
-
-    const nextData = mutate(data);
-
-    const writeOptions = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
-
-    let result;
-    try {
-      result = await store.set(KEY, JSON.stringify(nextData), writeOptions);
-    } catch (err) {
-      // Idem : une exception à l'écriture (pas juste `modified: false`) veut
-      // dire que Blobs a rejeté/échoué la requête elle-même, pas qu'il y a eu
-      // un conflit. On arrête tout de suite au lieu de gaspiller 10 tentatives
-      // sur une erreur qui ne se résoudra jamais en réessayant.
-      err.isBlobsUnavailable = true;
-      throw err;
-    }
-
-    if (result.modified) return nextData;
-
-    // Vrai conflit : une autre requête a écrit entre notre lecture et notre
-    // écriture (modified === false, mais pas d'exception). On réessaie avec
-    // un léger délai aléatoire pour éviter que plusieurs tentatives ne se
-    // re-percutent en boucle.
-    await new Promise((resolve) =>
-      setTimeout(resolve, 30 + Math.random() * 70),
-    );
+// Une première version de ce fichier tentait un verrouillage optimiste par
+// ETag (onlyIfMatch / onlyIfNew), mais ce mécanisme échouait de façon
+// systématique en production sur ce compte (probablement une incompatibilité
+// de version avec @netlify/blobs), rendant l'app inutilisable même sans
+// aucune concurrence réelle. On revient donc à un simple cycle
+// lire → modifier → écrire, sans condition.
+//
+// Compromis assumé : dans cette app (vote communautaire, pas des milliers de
+// requêtes/seconde), le risque qu'une écriture soit perdue parce que deux
+// votes arrivent à la même milliseconde est très faible, et largement
+// préférable à une app qui échoue systématiquement.
+async function writeData(store, mutate) {
+  let current;
+  try {
+    current = await store.get(KEY, { type: "json" });
+  } catch (err) {
+    err.isBlobsUnavailable = true;
+    throw err;
   }
 
-  throw new Error(
-    "Impossible d'enregistrer après plusieurs tentatives (trop de conflits concurrents).",
-  );
+  const data = current || {};
+  const nextData = mutate(data);
+
+  try {
+    await store.set(KEY, JSON.stringify(nextData));
+  } catch (err) {
+    err.isBlobsUnavailable = true;
+    throw err;
+  }
+
+  return nextData;
 }
 
 export default async (req) => {
