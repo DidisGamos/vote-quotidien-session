@@ -93,6 +93,7 @@ async function loadData() {
   try {
     const res = await fetch(API_URL, {
       headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     if (!res.ok) throw new Error("bad status " + res.status);
     return await res.json();

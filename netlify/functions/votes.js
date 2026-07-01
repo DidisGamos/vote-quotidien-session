@@ -46,7 +46,13 @@ function sanitizeComment(raw) {
 }
 
 export default async (req) => {
-  const store = getStore(STORE_NAME);
+  // consistency: "strong" force chaque lecture à refléter la toute dernière
+  // écriture. Sans cela, Netlify Blobs utilise une cohérence "éventuelle" :
+  // deux GET rapprochés peuvent atterrir sur des copies différentes du store
+  // et renvoyer des compteurs différents pour la même catégorie — c'est ce
+  // qui causait les votes qui "changeaient" ou disparaissaient au
+  // rafraîchissement.
+  const store = getStore(STORE_NAME, { consistency: "strong" });
 
   if (req.method === "GET") {
     const data = (await store.get(KEY, { type: "json" })) || {};
