@@ -61,28 +61,49 @@ function sanitizeComment(raw) {
 // réussisse.
 async function writeWithRetry(store, mutate, maxAttempts = 10) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const current = await store.getWithMetadata(KEY, { type: "json" });
+    let current;
+    try {
+      current = await store.getWithMetadata(KEY, { type: "json" });
+    } catch (err) {
+      // Une erreur ICI n'est PAS un conflit d'écriture concurrente : c'est
+      // généralement le signe que Netlify Blobs n'est pas disponible dans cet
+      // environnement (site non déployé sur Netlify, `netlify dev` non lancé
+      // en local, ou fonction exécutée hors du contexte Netlify). On le
+      // propage tel quel au lieu de le confondre avec un conflit d'ETag.
+      err.isBlobsUnavailable = true;
+      throw err;
+    }
+
     const data = (current && current.data) || {};
     const etag = current ? current.etag : null;
 
     const nextData = mutate(data);
 
     const writeOptions = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
-    const { modified } = await store.set(
-      KEY,
-      JSON.stringify(nextData),
-      writeOptions,
-    );
 
-    if (modified) return nextData;
+    let result;
+    try {
+      result = await store.set(KEY, JSON.stringify(nextData), writeOptions);
+    } catch (err) {
+      // Idem : une exception à l'écriture (pas juste `modified: false`) veut
+      // dire que Blobs a rejeté/échoué la requête elle-même, pas qu'il y a eu
+      // un conflit. On arrête tout de suite au lieu de gaspiller 10 tentatives
+      // sur une erreur qui ne se résoudra jamais en réessayant.
+      err.isBlobsUnavailable = true;
+      throw err;
+    }
 
-    // Conflit : une autre requête a écrit entre notre lecture et notre
-    // écriture. On réessaie avec un léger délai aléatoire pour éviter que
-    // plusieurs tentatives ne se re-percutent en boucle.
+    if (result.modified) return nextData;
+
+    // Vrai conflit : une autre requête a écrit entre notre lecture et notre
+    // écriture (modified === false, mais pas d'exception). On réessaie avec
+    // un léger délai aléatoire pour éviter que plusieurs tentatives ne se
+    // re-percutent en boucle.
     await new Promise((resolve) =>
       setTimeout(resolve, 30 + Math.random() * 70),
     );
   }
+
   throw new Error(
     "Impossible d'enregistrer après plusieurs tentatives (trop de conflits concurrents).",
   );
@@ -98,8 +119,19 @@ export default async (req) => {
   const store = getStore(STORE_NAME, { consistency: "strong" });
 
   if (req.method === "GET") {
-    const data = (await store.get(KEY, { type: "json" })) || {};
-    return jsonResponse(data);
+    try {
+      const data = (await store.get(KEY, { type: "json" })) || {};
+      return jsonResponse(data);
+    } catch (err) {
+      return jsonResponse(
+        {
+          error:
+            "Le stockage Netlify Blobs est inaccessible depuis cette fonction (site non déployé sur Netlify, ou fonction lancée hors du contexte Netlify / sans `netlify dev`).",
+          detail: String((err && err.message) || err),
+        },
+        500,
+      );
+    }
   }
 
   if (req.method === "DELETE") {
@@ -162,6 +194,17 @@ export default async (req) => {
         return current;
       });
     } catch (err) {
+      if (err && err.isBlobsUnavailable) {
+        // Pas un conflit de concurrence : Blobs lui-même est injoignable.
+        return jsonResponse(
+          {
+            error:
+              "Le stockage Netlify Blobs est inaccessible depuis cette fonction. Vérifiez que le site est bien déployé sur Netlify (ou lancé via `netlify dev` en local), et pas servi par un simple serveur statique.",
+            detail: String((err && err.message) || err),
+          },
+          500,
+        );
+      }
       return jsonResponse(
         {
           error:
