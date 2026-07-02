@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Application de vote quotidien (sakafo / environnement & logistique / animation / formateur) avec stockage JSON partagé via Netlify Blobs.",
+  "description": "Application de vote quotidien (sakafo / environnement & logistique / animation / formateur), déployée sur Vercel avec Supabase comme stockage partagé.",
   "dependencies": {
-    "@netlify/blobs": "^8.1.0",
     "@supabase/supabase-js": "^2.45.0",
     "pg": "^8.4.5"
   }

@@ -15,13 +15,15 @@
      "animation":  { ... },
      "formateur":  { ... }
    }
-   Aucune information sur l'identité des votants n'est stockée : uniquement
-   des compteurs agrégés et des commentaires libres, par jour et par catégorie.
+   Les votants se connectent désormais avec un identifiant créé par l'admin
+   (ex: U001, voir /identification). Le serveur sait donc, pour l'utilisateur
+   connecté, quels volets ont déjà été notés aujourd'hui — un seul vote par
+   volet et par jour et par identifiant.
 ========================================================================= */
 
 const API_URL = "/api/votes";
+const ME_URL = "/api/me";
 const LOCAL_FALLBACK_KEY = "voteapp_fallback_data_v2";
-const LAST_VOTE_KEY = "voteapp_last_vote_v2";
 const LAST_SEEN_TOTAL_KEY = "voteapp_last_seen_total_v2";
 const COMMENT_MAX = 300;
 
@@ -66,6 +68,8 @@ const SCALE_COLORS = {
 
 let store = {};
 let usingLocalFallback = false;
+let currentUser = null; // { id, label }
+let votedToday = {}; // { catId: true/false }, renvoyé par le serveur
 const selectedValues = {}; // { catId: 1..5 }
 
 /* ---------------------------------------------------------------------
@@ -111,21 +115,30 @@ function formatDateLong(dateStr) {
   });
 }
 
-function readLastVotes() {
+async function loadCurrentUser() {
   try {
-    return JSON.parse(localStorage.getItem(LAST_VOTE_KEY)) || {};
+    const res = await fetch(ME_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+    const data = await res.json();
+    currentUser = data.user || null;
   } catch {
-    return {};
+    currentUser = null;
   }
+  if (!currentUser) {
+    window.location.href = "/identification";
+  }
+  return currentUser;
 }
-function writeLastVotes(obj) {
-  localStorage.setItem(LAST_VOTE_KEY, JSON.stringify(obj));
-}
+
 function hasVotedToday(catId) {
-  return false; // Disabled: allow multiple votes per day for multiple users
+  return Boolean(votedToday[catId]);
 }
 function markVotedToday(catId) {
-  // Disabled: allow multiple votes per day for multiple users
+  votedToday[catId] = true;
+}
+
+async function logout() {
+  await fetch(ME_URL, { method: "DELETE" }).catch(() => {});
+  window.location.href = "/identification";
 }
 
 /* ---------------------------------------------------------------------
@@ -151,6 +164,10 @@ async function loadData() {
     if (!res.ok) throw new Error("bad status " + res.status);
     const data = await res.json();
     usingLocalFallback = false;
+    if (data.__voter) {
+      votedToday = data.__voter.votedToday || {};
+      delete data.__voter;
+    }
     return data;
   } catch (err) {
     usingLocalFallback = true;
@@ -187,6 +204,14 @@ async function submitVote(catId, value, comment) {
       });
       if (res.status !== 503) break; // 503 = conflit d'écriture temporaire, on retente
       await new Promise((r) => setTimeout(r, 150 + Math.random() * 200));
+    }
+    if (res.status === 401) {
+      window.location.href = "/identification";
+      return { ok: false, reason: "unauthenticated" };
+    }
+    if (res.status === 409) {
+      markVotedToday(catId);
+      return { ok: false, reason: "already_voted" };
     }
     if (!res.ok) throw new Error("bad status " + res.status);
     const payload = await res.json();
@@ -453,6 +478,12 @@ async function init() {
   document.getElementById("today-label").textContent =
     formatDateLong(todayStr());
 
+  await loadCurrentUser();
+  if (!currentUser) return; // redirection vers /identification en cours
+
+  const userBadge = document.getElementById("user-id-label");
+  if (userBadge) userBadge.textContent = currentUser.id;
+
   store = await loadData();
   setLastSeenTotal(grandTotal(store));
   renderCategoryGrid();
@@ -463,6 +494,8 @@ async function init() {
   document
     .getElementById("submit-all-btn")
     .addEventListener("click", onSubmitAll);
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) logoutBtn.addEventListener("click", logout);
   setInterval(() => refreshData({ silent: true }), 25000);
 }
 

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Connexion admin &middot; Sondaha isan'andro</title>
+    <link rel="icon" type="image/x-icon" href="./public/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,560;0,9..144,650;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="admin-body login-body">
+    <div class="dot-field dot-field-tl" aria-hidden="true">
+      <span></span><span></span><span></span> <span></span><span></span
+      ><span></span> <span></span><span></span><span></span>
+    </div>
+
+    <main class="login-main">
+      <form class="login-card" id="login-form">
+        <span class="brand-mark admin-mark login-mark">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7l8-4z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              fill="none"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <h1>Espace admin</h1>
+        <p class="login-sub">
+          Réservé à l'équipe organisatrice. Entrez le mot de passe pour
+          accéder à l'historique des votes.
+        </p>
+
+        <label class="login-field">
+          <span>Mot de passe</span>
+          <input
+            type="password"
+            id="login-password"
+            name="password"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+
+        <button type="submit" class="btn-submit login-submit" id="login-submit">
+          Se connecter
+        </button>
+
+        <p class="login-error" id="login-error" hidden></p>
+      </form>
+    </main>
+
+    <script src="login.js"></script>
+  </body>
+</html>

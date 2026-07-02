@@ -7,14 +7,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
 
 export default async function handler(req, res) {
-  if (!isAuthenticated(req)) {
+  if (isAuthenticated(req)) {
     res.statusCode = 302;
-    res.setHeader("Location", "/admin/login");
+    res.setHeader("Location", "/admin");
     res.end();
     return;
   }
 
-  const filePath = join(rootDir, "admin.html");
+  const filePath = join(rootDir, "login.html");
   try {
     const html = await readFile(filePath, "utf8");
     res.setHeader("Content-Type", "text/html; charset=utf-8");

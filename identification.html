@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Identification &middot; Sondaha isan'andro</title>
+    <link rel="icon" type="image/x-icon" href="./public/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,560;0,9..144,650;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="admin-body login-body">
+    <div class="dot-field dot-field-tl" aria-hidden="true">
+      <span></span><span></span><span></span> <span></span><span></span
+      ><span></span> <span></span><span></span><span></span>
+    </div>
+
+    <main class="login-main">
+      <form class="login-card" id="identification-form">
+        <span class="brand-mark login-mark">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              d="M12 3l8 4v5c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V7l8-4z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              fill="none"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <h1>Sondaha isan&#39;andro</h1>
+        <p class="login-sub">
+          Entrez l'identifiant qui vous a été donné par l'organisateur
+          (exemple : <strong>U001</strong>) pour accéder au vote du jour.
+        </p>
+
+        <label class="login-field">
+          <span>Identifiant</span>
+          <input
+            type="text"
+            id="identification-id"
+            name="id"
+            placeholder="U001"
+            autocomplete="off"
+            autocapitalize="characters"
+            required
+          />
+        </label>
+
+        <button type="submit" class="btn-submit login-submit" id="identification-submit">
+          Continuer
+        </button>
+
+        <p class="login-error" id="identification-error" hidden></p>
+      </form>
+    </main>
+
+    <script src="identification.js"></script>
+  </body>
+</html>

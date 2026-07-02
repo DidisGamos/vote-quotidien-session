@@ -1,11 +1,19 @@
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getVoterId } from '../lib/auth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 
 export default async function handler(req, res) {
+  if (!getVoterId(req)) {
+    res.statusCode = 302;
+    res.setHeader('Location', '/identification');
+    res.end();
+    return;
+  }
+
   const filePath = join(rootDir, 'index.html');
   try {
     const html = await readFile(filePath, 'utf8');

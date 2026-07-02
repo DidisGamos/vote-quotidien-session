@@ -11,31 +11,49 @@ Chaque personne note chaque volet de **1 à 5** et peut laisser un **commentaire
 libre**, une fois par jour et par volet. Aucune identité n'est enregistrée : seules
 des statistiques agrégées et les commentaires (anonymes) sont conservés, **par jour
 et par volet**. Les données des jours précédents ne sont jamais supprimées : elles
-constituent l'historique, visible uniquement depuis la page admin.
+constituent l'historique, visible uniquement depuis la page admin — désormais
+**protégée par mot de passe**.
 
 Design basé sur les couleurs de l'identité UNFPA (orange de marque + bleu ONU), avec
 un motif de points repris du logo en arrière-plan.
 
-## Deux pages
+## Trois pages
 
 - **`index.html`** — page publique de vote. 4 cartes, une par volet : note de 1 à 5
-  - commentaire optionnel + bouton d'envoi. Un badge « Nouveau vote » s'allume tant
-    que la personne n'a pas encore voté aujourd'hui sur cet appareil. Un bouton
-    Actualiser (avec pastille) permet de voir les votes des autres personnes en temps
-    quasi réel.
-- **`admin.html`** — page d'historique complet, **non authentifiée** et **non liée**
-  depuis la page publique (accessible uniquement à qui a l'URL). Elle affiche, pour
-  chaque volet, la répartition des notes jour par jour et tous les commentaires
-  laissés. C'est ici qu'est centralisé tout l'historique (il n'y a plus d'onglet
-  Historique sur la page publique).
+  + commentaire optionnel + bouton d'envoi. Un badge « Nouveau vote » s'allume tant
+  que la personne n'a pas encore voté aujourd'hui sur cet appareil. Un bouton
+  Actualiser (avec pastille) permet de voir les votes des autres personnes en temps
+  quasi réel. **Ne reçoit et n'affiche que les données du jour courant** : l'historique
+  complet n'est jamais exposé publiquement.
+- **`admin.html`** — tableau de bord **protégé par mot de passe** (voir
+  [Authentification admin](#authentification-admin)), avec deux onglets bien
+  séparés :
+  - **Aujourd'hui** : instantané du jour en cours uniquement (se vide tout seul à
+    minuit, sans action manuelle).
+  - **Historique** : uniquement les jours *précédents* (jamais le jour courant), avec
+    sélecteur de volet et de date, et tendance sur les jours passés.
+- **`login.html`** — page de connexion admin (mot de passe uniquement, pas de
+  compte individuel).
 
-  ⚠️ Gardez le lien `/admin.html` privé (ne le partagez qu'avec l'équipe
-  organisatrice) : n'importe qui possédant l'URL peut consulter l'historique et les
-  commentaires, puisqu'il n'y a volontairement pas de mot de passe.
+## Authentification admin
+
+- Un **seul mot de passe partagé** (variable d'environnement `ADMIN_PASSWORD`),
+  pas de compte individuel — le site public reste totalement anonyme, seule
+  l'équipe organisatrice a besoin de se connecter.
+- `POST /api/admin/login` vérifie le mot de passe et pose un cookie de session
+  `HttpOnly` signé (HMAC-SHA256, 12h de validité, sans état côté serveur).
+- `GET /admin` redirige automatiquement vers `/admin/login` si la session est
+  absente ou expirée.
+- `GET/DELETE /api/admin/data` (lecture de l'historique complet / réinitialisation)
+  exigent la même session valide, sinon renvoient `401`.
+- `POST /api/admin/logout` efface le cookie.
+
+⚠️ Définissez `ADMIN_PASSWORD` dans les variables d'environnement Vercel avant
+de déployer, sinon la connexion admin renverra une erreur explicite.
 
 ## Comment ça marche
 
-- **Un seul fichier JSON**, structuré ainsi :
+- **Un seul jeu de données**, structuré ainsi :
   ```json
   {
     "sakafo": {
@@ -44,76 +62,87 @@ un motif de points repris du logo en arrière-plan.
         "comments": [{ "v": 4, "text": "Très bon accueil" }]
       }
     },
-    "logistique": {
-      "2026-07-01": { "counts": { "...": "..." }, "comments": [] }
-    },
+    "logistique": { "2026-07-01": { "counts": { "...": "..." }, "comments": [] } },
     "animation": { "...": "..." },
     "formateur": { "...": "..." }
   }
   ```
-- Ce fichier vit côté serveur, dans **Netlify Blobs** (stockage clé/valeur natif à
-  Netlify, persistant entre les déploiements). Il est lu/écrit par la fonction
-  `netlify/functions/votes.js`, exposée sur `/api/votes`.
-- Les deux pages front appellent cette API :
-  - `GET /api/votes` → renvoie le JSON complet (agrégé, multi-utilisateurs).
-  - `POST /api/votes` `{ category, value, date, comment }` → incrémente le compteur
-    du jour, ajoute le commentaire s'il est non vide, et renvoie le JSON à jour.
+- Stocké dans **Supabase** (Postgres), via `lib/store.js`. Repli automatique sur un
+  fichier local (`/tmp`) si aucune base n'est configurée, pratique pour tester en
+  local sans backend.
+- Deux niveaux d'accès à l'API :
+  - `GET/POST /api/votes` — **public**. `GET` ne renvoie que **le jour courant**
+    (jamais l'historique). `POST` enregistre un vote.
+  - `GET/DELETE /api/admin/data` — **protégé**. `GET` renvoie l'historique complet ;
+    `DELETE` réinitialise tout.
 - Le navigateur retient uniquement, **en local** (localStorage), la date du dernier
   vote effectué _sur cet appareil_ pour chaque volet — cela sert uniquement à
   activer/désactiver les boutons de vote et à afficher le badge « Nouveau vote »
   quand un nouveau jour commence. Ce n'est pas une identité, juste un verrou local
   anti-double-vote.
-- Toutes les 25 secondes, l'appli récupère silencieusement les votes à jour ; si le
-  total global a augmenté (d'autres personnes ont voté), un petit point orange
+- Toutes les 25 secondes, l'appli récupère silencieusement les votes du jour ; si
+  le total a augmenté (d'autres personnes ont voté), un petit point orange
   s'allume sur le bouton **Actualiser**.
 
 ### Mode hors-ligne / démo locale
 
 Si l'API `/api/votes` n'est pas disponible (par exemple si vous ouvrez
-`index.html` directement dans un navigateur sans passer par Netlify), l'application
-bascule automatiquement sur un stockage `localStorage` (clé `voteapp_fallback_data_v1`)
-qui simule le même JSON. Cela permet de tester toute l'interface sans backend, avec
-la limite que les données restent alors propres à ce navigateur.
+`index.html` directement dans un navigateur sans passer par Vercel), l'application
+bascule automatiquement sur un stockage `localStorage` qui simule le même format.
+Cela permet de tester toute l'interface sans backend.
 
 ## Déploiement sur Vercel avec Supabase
 
 1. Créez la table Supabase avec le SQL fourni dans [supabase/schema.sql](supabase/schema.sql).
-2. Ajoutez la variable d'environnement suivante dans Vercel :
-   - `SUPABASE_CONNECTION_STRING` = votre chaîne de connexion Postgres
+2. Copiez `.env.example` en `.env` (local) ou renseignez les mêmes variables dans
+   Vercel :
+   - `SUPABASE_CONNECTION_STRING` (ou `DATABASE_URL`) — connexion Postgres.
+   - `ADMIN_PASSWORD` — mot de passe de l'espace admin.
 3. Déployez le projet :
    ```bash
    npm install
    npx vercel --prod
    ```
 4. Une fois en ligne, testez avec plusieurs navigateurs/appareils : les votes
-   s'additionnent bien dans la même base de données partagée.
-
-### Variables d'environnement utiles
-- `SUPABASE_CONNECTION_STRING`
-- `DATABASE_URL` (alternative si vous préférez)
-
-Si aucune base n'est configurée, l’API utilise un fichier de secours local pour éviter les erreurs de service.
+   s'additionnent bien dans la même base de données partagée, et `/admin` demande
+   bien le mot de passe.
 
 ## Structure du projet
 
 ```
 vote-app/
-├── index.html                 # Structure de la page (onglets Voter / Historique)
-├── style.css                  # Design (palette forêt/or/corail, jauges en éventail)
-├── app.js                     # Logique front (état, appels API, rendu)
-├── netlify/
-│   └── functions/
-│       └── votes.js           # API GET/POST /api/votes (Netlify Blobs)
-├── netlify.toml                # Config de build/déploiement Netlify
-├── package.json                # Dépendance @netlify/blobs
+├── index.html                 # Page publique de vote
+├── login.html                 # Page de connexion admin
+├── admin.html                 # Tableau de bord admin (protégé)
+├── app.js / login.js / admin.js
+├── style.css
+├── lib/
+│   ├── store.js                # Accès aux données (Supabase + repli fichier)
+│   └── auth.js                 # Mot de passe admin + session par cookie signé
+├── api/
+│   ├── index.js, style.js, app.js       # Servent les fichiers statiques
+│   ├── admin-page.js                     # Sert admin.html (protégé)
+│   ├── admin-script.js                   # Sert admin.js
+│   ├── login-page.js, login-script.js    # Servent login.html / login.js
+│   ├── votes.js                          # API publique (jour courant)
+│   └── admin/
+│       ├── data.js                       # Historique complet (protégé)
+│       ├── login.js                      # Connexion (pose le cookie)
+│       └── logout.js                     # Déconnexion
+├── supabase/schema.sql
+├── vercel.json
+├── package.json
+├── .env.example
 └── README.md
 ```
 
 ## Personnalisation rapide
 
-- **Ajouter/renommer un volet** : modifiez le tableau `CATEGORIES` en haut de
-  `app.js` (id, libellé, sous-titre, icône, couleur), et la liste `CATEGORIES`
-  correspondante dans `netlify/functions/votes.js` (validation côté serveur).
+- **Ajouter/renommer un volet** : modifiez le tableau `CATEGORIES` dans `app.js`
+  (id, libellé, sous-titre, icône, couleur), dans `admin.js`, et la liste
+  `CATEGORIES` dans `lib/store.js` (validation côté serveur).
 - **Changer les couleurs** : variables CSS en haut de `style.css` (`:root`).
+- **Durée de la session admin** : constante `SESSION_DURATION_SECONDS` dans
+  `lib/auth.js` (12h par défaut).
 - **Fréquence de rafraîchissement automatique** : constante dans `setInterval(...)`
   tout en bas de `app.js` (actuellement 25 secondes).

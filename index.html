@@ -38,6 +38,10 @@
           </div>
         </div>
         <div class="head-right">
+          <div class="today-pill" title="Identifiant connecté">
+            <span class="dot"></span>
+            <span id="user-id-label">—</span>
+          </div>
           <div class="today-pill">
             <span class="dot"></span>
             <span id="today-label">—</span>
@@ -59,6 +63,9 @@
             </svg>
             <span>Actualiser</span>
             <span class="new-badge" id="new-badge" hidden></span>
+          </button>
+          <button class="btn-refresh" id="logout-btn" title="Changer d'identifiant">
+            <span>Déconnexion</span>
           </button>
         </div>
       </div>
@@ -85,8 +92,10 @@
 
     <footer>
       <p>
-        Les votes sont anonymes &mdash; aucune identité n&#39;est enregistrée,
-        seules les statistiques et commentaires du jour sont conservés.
+        Votez avec l&#39;identifiant qui vous a été donné par l&#39;organisateur
+        (ex : U001). Il permet de suivre l&#39;historique sans afficher votre
+        nom : seules les statistiques et commentaires par identifiant sont
+        conservés.
       </p>
     </footer>
 
