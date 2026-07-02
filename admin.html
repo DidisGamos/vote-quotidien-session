@@ -194,17 +194,22 @@
           aucune ressaisie n&#39;est nécessaire.
         </p>
 
-        <div class="history-controls">
-          <label class="date-picker" style="flex: 1">
+        <div class="user-create-row">
+          <label class="field-label" for="new-user-label">
             <span>Étiquette (optionnel, ex : nom ou table)</span>
             <input
               type="text"
               id="new-user-label"
+              class="text-input"
               placeholder="ex : Table 3"
               maxlength="120"
             />
           </label>
-          <button class="btn-refresh" id="create-user-btn" type="button">
+          <button
+            class="btn-refresh btn-primary"
+            id="create-user-btn"
+            type="button"
+          >
             <span>+ Ajouter un identifiant</span>
           </button>
         </div>

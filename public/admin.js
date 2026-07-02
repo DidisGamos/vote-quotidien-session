@@ -151,6 +151,13 @@ function renderTodayHero() {
 
   const avg = totalVotes ? (weightedSum / totalVotes).toFixed(2) : "—";
 
+  const votedByUser = store._todayVotedByUser || {};
+  const votedCount = Object.keys(votedByUser).length;
+  const totalUsers = allUsers.length;
+  const votedRatio = totalUsers
+    ? `${votedCount} / ${totalUsers}`
+    : `${votedCount}`;
+
   document.getElementById("today-hero").innerHTML = `
     <div class="hero-stat">
       <span class="hero-num">${totalVotes}</span>
@@ -163,6 +170,10 @@ function renderTodayHero() {
     <div class="hero-stat">
       <span class="hero-num">${totalComments}</span>
       <span class="hero-lbl">Commentaire${totalComments > 1 ? "s" : ""} aujourd&#39;hui</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-num">${votedRatio}</span>
+      <span class="hero-lbl">Identifiant${votedCount > 1 ? "s" : ""} ayant voté aujourd&#39;hui</span>
     </div>
   `;
 }
@@ -735,13 +746,12 @@ async function init() {
   } catch {
     store = {};
   }
-  renderAll();
-
   try {
     allUsers = await loadUsers();
   } catch {
     allUsers = [];
   }
+  renderAll();
   renderUsersList();
   renderHistoryUserSelect();
 
