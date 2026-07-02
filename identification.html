@@ -34,24 +34,30 @@
         </span>
         <h1>Sondaha isan&#39;andro</h1>
         <p class="login-sub">
-          Entrez l'identifiant qui vous a été donné par l'organisateur
-          (exemple : <strong>U001</strong>) pour accéder au vote du jour.
+          Entrez l'étiquette qui vous a été donnée par l'organisateur (exemple :
+          <strong>Table 3</strong>) pour accéder au vote du jour. Vous pouvez
+          aussi utiliser votre identifiant (ex : U001) si vous n'avez pas
+          d'étiquette.
         </p>
 
         <label class="login-field">
-          <span>Identifiant</span>
+          <span>Étiquette ou identifiant</span>
           <input
             type="text"
             id="identification-id"
             name="id"
-            placeholder="U001"
+            placeholder="Table 3"
             autocomplete="off"
-            autocapitalize="characters"
+            autocapitalize="words"
             required
           />
         </label>
 
-        <button type="submit" class="btn-submit login-submit" id="identification-submit">
+        <button
+          type="submit"
+          class="btn-submit login-submit"
+          id="identification-submit"
+        >
           Continuer
         </button>
 

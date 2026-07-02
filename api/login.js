@@ -6,7 +6,7 @@
    pose un cookie de session signé.
 ========================================================================= */
 
-import { findUser } from "../lib/store.js";
+import { findUser, findUserByLabel } from "../lib/store.js";
 import { buildVoterSessionCookie } from "../lib/auth.js";
 
 function sendJson(res, status, body) {
@@ -31,15 +31,26 @@ export default async function handler(req, res) {
   }
 
   const { id } = await readJsonBody(req);
-  const userId = typeof id === "string" ? id.trim().toUpperCase() : "";
+  const raw = typeof id === "string" ? id.trim() : "";
 
-  if (!userId) {
-    return sendJson(res, 400, { error: "Identifiant requis" });
+  if (!raw) {
+    return sendJson(res, 400, { error: "Identifiant ou étiquette requis" });
   }
 
-  const user = await findUser(userId);
+  // On se connecte d'abord par l'étiquette (ex: "Table 3"), plus facile à
+  // retenir sur le terrain. Si aucune étiquette ne correspond, on retente
+  // avec le code technique (ex: U001) pour ne pas casser les identifiants
+  // déjà communiqués sans étiquette.
+  let user = await findUserByLabel(raw);
   if (!user) {
-    return sendJson(res, 401, { error: "Identifiant inconnu. Vérifiez auprès de l'organisateur." });
+    user = await findUser(raw.toUpperCase());
+  }
+
+  if (!user) {
+    return sendJson(res, 401, {
+      error:
+        "Étiquette ou identifiant inconnu. Vérifiez auprès de l'organisateur.",
+    });
   }
 
   res.setHeader("Set-Cookie", buildVoterSessionCookie(req, user.id));
