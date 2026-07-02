@@ -1,5 +1,5 @@
 /* =========================================================================
-   Sondaha isan'andro — vote quotidien (page publique)
+   Fanombanana — vote quotidien (page publique)
    -------------------------------------------------------------------------
    Modèle de données (partagé, stocké côté serveur en JSON via Netlify Blobs,
    avec repli automatique sur localStorage si le backend n'est pas dispo) :

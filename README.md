@@ -1,4 +1,4 @@
-# Sondaha isan'andro — Vote quotidien (UNFPA)
+# Fanombanana — Vote quotidien (UNFPA)
 
 Application de vote/notation quotidienne pour une session, répartie en 4 volets :
 
