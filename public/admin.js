@@ -47,6 +47,11 @@ function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+function yesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 function emptyDay() {
   return { counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, comments: [] };
 }
@@ -89,7 +94,9 @@ function escapeHtml(str) {
 /* --------------------------- Chargement des données --------------------------- */
 
 async function loadData({ userId } = {}) {
-  const url = userId ? `${DATA_URL}?user=${encodeURIComponent(userId)}` : DATA_URL;
+  const url = userId
+    ? `${DATA_URL}?user=${encodeURIComponent(userId)}`
+    : DATA_URL;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },
     cache: "no-store",
@@ -124,7 +131,8 @@ function renderTodayCatSeg() {
 
 function renderTodayHero() {
   const date = todayStr();
-  document.getElementById("today-date-label").textContent = formatDateLong(date);
+  document.getElementById("today-date-label").textContent =
+    formatDateLong(date);
 
   let totalVotes = 0;
   let totalComments = 0;
@@ -135,7 +143,10 @@ function renderTodayHero() {
     const t = dayTotal(day);
     totalVotes += t;
     totalComments += day.comments.length;
-    weightedSum += [1, 2, 3, 4, 5].reduce((s, v) => s + v * (day.counts[v] || 0), 0);
+    weightedSum += [1, 2, 3, 4, 5].reduce(
+      (s, v) => s + v * (day.counts[v] || 0),
+      0,
+    );
   });
 
   const avg = totalVotes ? (weightedSum / totalVotes).toFixed(2) : "—";
@@ -210,7 +221,9 @@ function renderTodayDetail() {
     .slice()
     .reverse()
     .map(
-      (c) => `<div class="comment-card" style="--card-accent:${SCALE_COLORS[c.v]}">
+      (
+        c,
+      ) => `<div class="comment-card" style="--card-accent:${SCALE_COLORS[c.v]}">
         <span class="cc-score" style="background:${SCALE_COLORS[c.v]}">${c.v}</span>
         <div>
           <div class="cc-text">${escapeHtml(c.text)}</div>
@@ -225,6 +238,66 @@ function renderToday() {
   renderTodayHero();
   renderTodayCats();
   renderTodayDetail();
+}
+
+function renderYesterdayHero() {
+  const date = yesterdayStr();
+  const label = document.getElementById("yesterday-date-label");
+  if (label) label.textContent = formatDateLong(date);
+
+  let totalVotes = 0;
+  let totalComments = 0;
+  let weightedSum = 0;
+
+  CATEGORIES.forEach((c) => {
+    const day = getDay(c.id, date);
+    const t = dayTotal(day);
+    totalVotes += t;
+    totalComments += day.comments.length;
+    weightedSum += [1, 2, 3, 4, 5].reduce(
+      (s, v) => s + v * (day.counts[v] || 0),
+      0,
+    );
+  });
+
+  const avg = totalVotes ? (weightedSum / totalVotes).toFixed(2) : "—";
+  const hero = document.getElementById("yesterday-hero");
+  if (!hero) return;
+  hero.innerHTML = `
+    <div class="hero-stat">
+      <span class="hero-num">${totalVotes}</span>
+      <span class="hero-lbl">Votes hier (tous volets)</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-num">${avg}</span>
+      <span class="hero-lbl">Moyenne d&#39;hier / 5</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-num">${totalComments}</span>
+      <span class="hero-lbl">Commentaire${totalComments > 1 ? "s" : ""} hier</span>
+    </div>
+  `;
+}
+
+function renderYesterdayCats() {
+  const date = yesterdayStr();
+  const container = document.getElementById("yesterday-cats");
+  if (!container) return;
+  container.innerHTML = CATEGORIES.map((c) => {
+    const day = getDay(c.id, date);
+    const total = dayTotal(day);
+    const avg = dayAverage(day);
+    return `
+      <div class="overview-cat-card" style="--card-accent:${c.accent}">
+        <div class="occ-head">
+          <span class="occ-dot" style="background:${c.accent}"></span>
+          <h4>${c.label}</h4>
+        </div>
+        <div class="occ-total">${total}<span>vote${total > 1 ? "s" : ""}</span></div>
+        <div class="occ-meta">Moyenne : <strong>${total ? avg.toFixed(2) : "—"}</strong> / 5</div>
+        <div class="occ-meta">${day.comments.length} commentaire${day.comments.length > 1 ? "s" : ""}</div>
+      </div>`;
+  }).join("");
 }
 
 /* =========================================================================
@@ -319,7 +392,9 @@ function renderHistoryDetail() {
       .slice()
       .reverse()
       .map(
-        (c) => `<div class="comment-card" style="--card-accent:${SCALE_COLORS[c.v]}">
+        (
+          c,
+        ) => `<div class="comment-card" style="--card-accent:${SCALE_COLORS[c.v]}">
           <span class="cc-score" style="background:${SCALE_COLORS[c.v]}">${c.v}</span>
           <div>
             <div class="cc-text">${escapeHtml(c.text)}</div>
@@ -350,6 +425,8 @@ function renderHistoryDetail() {
 }
 
 function renderHistory() {
+  renderYesterdayHero();
+  renderYesterdayCats();
   renderHistoryDateSelect();
   renderHistoryDetail();
 }
@@ -435,6 +512,8 @@ async function onHistoryUserChange() {
     store = {};
   }
 
+  renderYesterdayHero();
+  renderYesterdayCats();
   renderHistoryDateSelect();
   renderHistoryDetail();
 }
@@ -507,7 +586,8 @@ function initTabs() {
         .querySelectorAll("button")
         .forEach((b) => b.classList.toggle("active", b === btn));
       document.getElementById("tab-today").hidden = btn.dataset.tab !== "today";
-      document.getElementById("tab-history").hidden = btn.dataset.tab !== "history";
+      document.getElementById("tab-history").hidden =
+        btn.dataset.tab !== "history";
       document.getElementById("tab-users").hidden = btn.dataset.tab !== "users";
       if (btn.dataset.tab === "users") refreshUsers();
     });
@@ -556,7 +636,9 @@ function showModal({
 async function refresh() {
   const btn = document.getElementById("refresh-btn");
   btn.classList.add("spinning");
-  store = await loadData(historyFilteredStore ? { userId: historyFilteredStore } : {});
+  store = await loadData(
+    historyFilteredStore ? { userId: historyFilteredStore } : {},
+  );
   await refreshUsers();
   renderAll();
   setTimeout(() => btn.classList.remove("spinning"), 500);
@@ -666,7 +748,9 @@ async function init() {
   document.getElementById("refresh-btn").addEventListener("click", refresh);
   document.getElementById("reset-btn").addEventListener("click", resetData);
   document.getElementById("logout-btn").addEventListener("click", logout);
-  document.getElementById("create-user-btn").addEventListener("click", createUser);
+  document
+    .getElementById("create-user-btn")
+    .addEventListener("click", createUser);
   document
     .getElementById("admin-modal-confirm")
     .addEventListener("click", () => {

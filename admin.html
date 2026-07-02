@@ -145,7 +145,24 @@
           demain.
         </p>
 
+        <p class="lead today-lead">
+          Instantané d&#39;hier (<span id="yesterday-date-label"></span>).
+          Filtrez par identifiant ci-dessous pour voir les votes d&#39;une seule
+          personne, ou choisissez un autre jour plus bas.
+        </p>
+
+        <div class="overview-hero" id="yesterday-hero"></div>
+
+        <h3 class="section-title">Total de votes par volet — hier</h3>
+        <div class="overview-cats" id="yesterday-cats"></div>
+
         <div class="history-controls" id="history-controls-wrap">
+          <label class="date-picker">
+            <span>Identifiant</span>
+            <select id="history-user-select">
+              <option value="">Tous les identifiants</option>
+            </select>
+          </label>
           <div
             class="seg"
             id="history-cat-seg"
@@ -156,15 +173,10 @@
             <span>Jour</span>
             <select id="history-date-select"></select>
           </label>
-          <label class="date-picker">
-            <span>Identifiant</span>
-            <select id="history-user-select">
-              <option value="">Tous les identifiants</option>
-            </select>
-          </label>
         </div>
 
         <div id="history-body">
+          <h3 class="section-title">Détail par jour et par volet</h3>
           <div class="history-summary" id="history-summary"></div>
 
           <h3 class="section-title">Commentaires du jour</h3>
