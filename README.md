@@ -1,4 +1,4 @@
-# Fanombanana — Vote quotidien (UNFPA)
+# Hevitra Isan'andro — Vote quotidien (UNFPA)
 
 Application de vote/notation quotidienne pour une session, répartie en 4 volets :
 
