@@ -1009,12 +1009,30 @@ main {
   background: var(--bg);
   border: 1px solid var(--line);
   color: var(--ink);
-  padding: 12px 14px;
+  padding: 12px 14px 12px 40px;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: 14.5px;
   width: 100%;
   transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.text-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.text-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--muted-2);
+  pointer-events: none;
+  transition: color .18s ease;
+}
+
+.text-input-wrap:focus-within .text-input-icon {
+  color: var(--orange);
 }
 
 .text-input::placeholder {
