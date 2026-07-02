@@ -1,14 +1,15 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/style.css", "destination": "/api/style.js" },
-    { "source": "/app.js", "destination": "/api/app.js" },
-    { "source": "/admin.js", "destination": "/api/admin-script.js" },
-    { "source": "/login.js", "destination": "/api/login-script.js" },
     { "source": "/admin", "destination": "/api/admin-page" },
     { "source": "/admin/login", "destination": "/api/login-page" },
-    { "source": "/identification.js", "destination": "/api/identification-script.js" },
     { "source": "/identification", "destination": "/api/identification-page" },
     { "source": "/", "destination": "/api/index" }
+  ],
+  "headers": [
+    {
+      "source": "/(style.css|app.js|admin.js|login.js|identification.js)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    }
   ]
 }
