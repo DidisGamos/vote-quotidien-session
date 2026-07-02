@@ -1,14 +1,20 @@
 /* =========================================================================
    API admin — /api/admin/data (authentification requise)
    -------------------------------------------------------------------------
-   - GET    : renvoie l'historique complet (tous volets, tous jours).
-             Ajouter ?user=U001 pour ne voir que les votes de cet
-             identifiant (l'historique reste une seule table de votes,
-             simplement filtrée par identifiant).
+   - GET    : renvoie l'historique complet (tous volets, tous jours),
+             ainsi que le détail "qui a voté quoi aujourd'hui" (utilisé
+             par la liste des identifiants n'ayant pas voté tous les
+             volets). Ajouter ?user=U001 pour ne voir que les votes de
+             cet identifiant.
    - DELETE : réinitialise toutes les données.
 ========================================================================= */
 
-import { readAllData, resetAll } from "../../lib/store.js";
+import {
+  readAllData,
+  resetAll,
+  readVotedCategoriesByUser,
+  todayStr,
+} from "../../lib/store.js";
 import { isAuthenticated } from "../../lib/auth.js";
 
 function sendJson(res, status, body) {
@@ -23,9 +29,21 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    const userId = typeof req.query?.user === "string" && req.query.user.trim() ? req.query.user.trim().toUpperCase() : undefined;
+    const userId =
+      typeof req.query?.user === "string" && req.query.user.trim()
+        ? req.query.user.trim().toUpperCase()
+        : undefined;
     const { data } = await readAllData({ userId });
-    return sendJson(res, 200, data || {});
+    let todayVotedByUser = {};
+    try {
+      todayVotedByUser = await readVotedCategoriesByUser(todayStr());
+    } catch {
+      todayVotedByUser = {};
+    }
+    return sendJson(res, 200, {
+      ...(data || {}),
+      _todayVotedByUser: todayVotedByUser,
+    });
   }
 
   if (req.method === "DELETE") {

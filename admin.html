@@ -43,7 +43,12 @@
           </div>
         </div>
         <div class="head-right">
-          <button class="btn-refresh btn-reset" id="reset-btn" type="button" title="Réinitialiser les données">
+          <button
+            class="btn-refresh btn-reset"
+            id="reset-btn"
+            type="button"
+            title="Réinitialiser les données"
+          >
             <svg viewBox="0 0 20 20" width="16" height="16">
               <path
                 d="M4 6h12M8 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2m2 0v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6h8z"
@@ -88,12 +93,17 @@
 
     <main>
       <p class="lead">
-        Les votants se connectent avec un identifiant que vous créez ici
-        (ex : U001). Les notes et commentaires restent liés à cet
-        identifiant, jamais à un nom.
+        Les votants se connectent avec un identifiant que vous créez ici (ex :
+        U001). Les notes et commentaires restent liés à cet identifiant, jamais
+        à un nom.
       </p>
 
-      <div class="seg admin-tabs" id="admin-tabs" role="tablist" aria-label="Choisir une vue">
+      <div
+        class="seg admin-tabs"
+        id="admin-tabs"
+        role="tablist"
+        aria-label="Choisir une vue"
+      >
         <button data-tab="today" class="active">Aujourd&#39;hui</button>
         <button data-tab="history">Historique</button>
         <button data-tab="users">Identifiants</button>
@@ -103,13 +113,15 @@
         <p class="lead today-lead">
           Instantané du jour en cours (<span id="today-date-label"></span>).
           Cette vue se vide automatiquement dès qu&#39;une nouvelle journée
-          commence — les votes d&#39;hier basculent alors dans l&#39;onglet
-          « Historique ».
+          commence — les votes d&#39;hier basculent alors dans l&#39;onglet «
+          Historique ».
         </p>
 
         <div class="overview-hero" id="today-hero"></div>
 
-        <h3 class="section-title">Total de votes par volet — aujourd&#39;hui</h3>
+        <h3 class="section-title">
+          Total de votes par volet — aujourd&#39;hui
+        </h3>
         <div class="overview-cats" id="today-cats"></div>
 
         <div class="history-controls">
@@ -129,8 +141,8 @@
 
       <section id="tab-history" class="admin-panel" hidden>
         <p class="lead today-lead" id="history-empty-lead" hidden>
-          Pas encore de jour terminé : l&#39;historique se remplira à partir
-          de demain.
+          Pas encore de jour terminé : l&#39;historique se remplira à partir de
+          demain.
         </p>
 
         <div class="history-controls" id="history-controls-wrap">
@@ -166,14 +178,19 @@
       <section id="tab-users" class="admin-panel" hidden>
         <p class="lead today-lead">
           Créez un identifiant par personne, puis communiquez-le (ex : « Vous
-          êtes <strong>U004</strong> »). Les identifiants sont générés en
-          série, aucune ressaisie n&#39;est nécessaire.
+          êtes <strong>U004</strong> »). Les identifiants sont générés en série,
+          aucune ressaisie n&#39;est nécessaire.
         </p>
 
         <div class="history-controls">
-          <label class="date-picker" style="flex:1">
+          <label class="date-picker" style="flex: 1">
             <span>Étiquette (optionnel, ex : nom ou table)</span>
-            <input type="text" id="new-user-label" placeholder="ex : Table 3" maxlength="120" />
+            <input
+              type="text"
+              id="new-user-label"
+              placeholder="ex : Table 3"
+              maxlength="120"
+            />
           </label>
           <button class="btn-refresh" id="create-user-btn" type="button">
             <span>+ Ajouter un identifiant</span>
@@ -186,12 +203,29 @@
     </main>
 
     <div class="modal-overlay" id="admin-modal" hidden>
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <div
+        class="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-modal-title"
+      >
         <h3 id="admin-modal-title">Titre</h3>
         <p id="admin-modal-message">Message</p>
         <div class="modal-actions">
-          <button type="button" class="modal-btn modal-btn-secondary" id="admin-modal-cancel">Annuler</button>
-          <button type="button" class="modal-btn modal-btn-primary" id="admin-modal-confirm">OK</button>
+          <button
+            type="button"
+            class="modal-btn modal-btn-secondary"
+            id="admin-modal-cancel"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            class="modal-btn modal-btn-primary"
+            id="admin-modal-confirm"
+          >
+            OK
+          </button>
         </div>
       </div>
     </div>

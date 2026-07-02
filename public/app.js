@@ -117,7 +117,10 @@ function formatDateLong(dateStr) {
 
 async function loadCurrentUser() {
   try {
-    const res = await fetch(ME_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+    const res = await fetch(ME_URL, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
     const data = await res.json();
     currentUser = data.user || null;
   } catch {
@@ -178,17 +181,11 @@ async function loadData() {
 async function submitVote(catId, value, comment) {
   const date = todayStr();
 
-  if (!store[catId]) store[catId] = {};
-  if (!store[catId][date]) store[catId][date] = emptyDay();
-  store[catId][date].counts[String(value)] =
-    (store[catId][date].counts[String(value)] || 0) + 1;
-  if (comment) store[catId][date].comments.push({ v: value, text: comment });
-
-  if (usingLocalFallback) {
-    writeLocalFallback(store);
-    return { ok: true };
-  }
-
+  // IMPORTANT : plus de repli localStorage "silencieux" ici. Chaque vote
+  // doit être rattaché à un identifiant (user_id) côté serveur — un succès
+  // local uniquement n'a aucun sens et ne serait jamais vu par l'admin.
+  // On tente toujours le serveur, et on remonte un vrai échec si ça rate,
+  // au lieu de prétendre que ça a marché.
   try {
     let res;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -218,9 +215,10 @@ async function submitVote(catId, value, comment) {
     if (payload && payload.data) store = payload.data;
     return { ok: true };
   } catch (err) {
-    usingLocalFallback = true;
-    writeLocalFallback(store);
-    return { ok: true, offline: true };
+    // Vrai échec réseau/serveur : on NE marque PAS le vote comme envoyé,
+    // et on ne le stocke nulle part localement. L'utilisateur devra
+    // réessayer une fois la connexion rétablie.
+    return { ok: false, reason: "network_error" };
   }
 }
 
@@ -408,6 +406,8 @@ async function onSubmitAll() {
     .querySelectorAll("textarea[data-cat]")
     .forEach((ta) => (ta.disabled = true));
 
+  let hadError = false;
+
   for (const cat of pending) {
     const card = document.querySelector(`.card[data-cat="${cat.id}"]`);
     const comment = card
@@ -415,16 +415,43 @@ async function onSubmitAll() {
       .value.trim()
       .slice(0, COMMENT_MAX);
 
-    await submitVote(cat.id, selectedValues[cat.id], comment);
-    markVotedToday(cat.id);
+    const result = await submitVote(cat.id, selectedValues[cat.id], comment);
 
-    const badge = card.querySelector('[data-role="badge"]');
-    if (badge) badge.remove();
-    updateCardStats(cat.id, todayStr());
+    if (result.reason === "unauthenticated") {
+      return; // redirection vers /identification déjà déclenchée
+    }
+
+    if (result.ok || result.reason === "already_voted") {
+      markVotedToday(cat.id);
+      const badge = card.querySelector('[data-role="badge"]');
+      if (badge) badge.remove();
+      updateCardStats(cat.id, todayStr());
+    } else {
+      // Échec réel (réseau ou serveur) : on s'arrête là, on ne prétend
+      // pas que le vote est passé, et on laisse le volet re-sélectionnable.
+      hadError = true;
+      break;
+    }
   }
 
+  // On réactive toujours les contrôles à la fin, succès ou échec, pour
+  // que l'utilisateur puisse réessayer si besoin.
+  document.querySelectorAll(".vote-btn").forEach((b) => (b.disabled = false));
+  document
+    .querySelectorAll("textarea[data-cat]")
+    .forEach((ta) => (ta.disabled = false));
+
   updateGlobalSubmitBar();
-  showToast("Votre vote a été enregistré. Merci !");
+
+  if (hadError) {
+    btn.disabled = false;
+    btn.textContent = "Réessayer l'envoi";
+    status.textContent =
+      "Erreur de connexion au serveur : votre vote n'a pas pu être enregistré. Vérifiez votre connexion et réessayez.";
+    showToast("Erreur : le vote n'a pas été enregistré. Réessayez.");
+  } else {
+    showToast("Votre vote a été enregistré. Merci !");
+  }
 }
 
 /* ---------------------------------------------------------------------
