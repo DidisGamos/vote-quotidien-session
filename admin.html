@@ -107,6 +107,7 @@
         <button data-tab="today" class="active">Aujourd&#39;hui</button>
         <button data-tab="history">Historique</button>
         <button data-tab="users">Identifiants</button>
+        <button data-tab="archived">Réactivations</button>
       </div>
 
       <section id="tab-today" class="admin-panel">
@@ -238,6 +239,16 @@
 
         <h3 class="section-title">Identifiants créés</h3>
         <div class="comments-list" id="users-list"></div>
+      </section>
+
+      <section id="tab-archived" class="admin-panel" hidden>
+        <p class="lead today-lead">
+          Votes archivés suite aux réactivations — affiche les enregistrements
+          originaux supprimés pour permettre un suivi.
+        </p>
+
+        <h3 class="section-title">Réactivations</h3>
+        <div class="history-list" id="archived-list"></div>
       </section>
     </main>
 

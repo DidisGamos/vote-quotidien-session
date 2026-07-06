@@ -12,6 +12,7 @@
 
 const DATA_URL = "/api/admin/data";
 const USERS_URL = "/api/admin/users";
+const ARCHIVE_URL = "/api/admin/archived";
 const LOGIN_URL = "/admin/login";
 
 const CATEGORIES = [
@@ -40,6 +41,7 @@ let todayCategory = CATEGORIES[0].id;
 let historyCategory = CATEGORIES[0].id;
 let modalState = null;
 let justReset = false;
+let archivedItems = [];
 
 /* --------------------------- Utilitaires --------------------------- */
 
@@ -654,6 +656,7 @@ async function createUser() {
 function renderAll() {
   renderToday();
   renderHistory();
+  renderArchived();
 }
 
 function initTabs() {
@@ -668,6 +671,9 @@ function initTabs() {
         btn.dataset.tab !== "history";
       document.getElementById("tab-users").hidden = btn.dataset.tab !== "users";
       if (btn.dataset.tab === "users") refreshUsers();
+      if (btn.dataset.tab === "archived") {
+        loadArchived().then(renderArchived).catch(() => {});
+      }
     });
   });
 }
@@ -718,8 +724,53 @@ async function refresh() {
     historyFilteredStore ? { userId: historyFilteredStore } : {},
   );
   await refreshUsers();
+  await loadArchived();
   renderAll();
   setTimeout(() => btn.classList.remove("spinning"), 500);
+}
+
+async function loadArchived() {
+  try {
+    const res = await fetch(ARCHIVE_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (res.status === 401) {
+      window.location.href = LOGIN_URL;
+      return [];
+    }
+    if (!res.ok) throw new Error("bad status " + res.status);
+    const payload = await res.json();
+    archivedItems = Array.isArray(payload.archived) ? payload.archived : [];
+    return archivedItems;
+  } catch {
+    archivedItems = [];
+    return archivedItems;
+  }
+}
+
+function renderArchived() {
+  const wrap = document.getElementById("archived-list");
+  if (!wrap) return;
+  if (!archivedItems.length) {
+    wrap.innerHTML = `<div class="empty-state">Aucun vote archivé pour l'instant.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = archivedItems
+    .map((a) => {
+      const o = a.original || {};
+      const user = o.user_id || "—";
+      const cat = o.category || "—";
+      const val = o.value || "—";
+      const comment = o.comment ? escapeHtml(o.comment) : "";
+      const when = a.archived_at ? formatDateTimeShort(a.archived_at) : "";
+      return `<div class="comment-card">
+        <span class="cc-score" style="background:var(--orange)">${escapeHtml(user)}</span>
+        <div>
+          <div class="cc-text">Volet: <strong>${escapeHtml(cat)}</strong> — Note: <strong>${escapeHtml(String(val))}</strong></div>
+          <div class="cc-meta">Archivé le ${when}${comment ? " · Commentaire : " + comment : ""}</div>
+        </div>
+      </div>`;
+    })
+    .join("");
 }
 
 function resetData() {
@@ -818,6 +869,7 @@ async function init() {
   } catch {
     allUsers = [];
   }
+  await loadArchived();
   renderAll();
   renderUsersList();
   renderHistoryUserSelect();
