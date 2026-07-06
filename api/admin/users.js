@@ -5,7 +5,12 @@
    - POST : crée un nouvel identifiant, généré automatiquement en série.
 ========================================================================= */
 
-import { listUsers, createUser } from "../../lib/store.js";
+import {
+  listUsers,
+  createUser,
+  resetUserVotesForDate,
+  todayStr,
+} from "../../lib/store.js";
 import { isAuthenticated } from "../../lib/auth.js";
 
 function sendJson(res, status, body) {
@@ -40,6 +45,25 @@ export default async function handler(req, res) {
     const label = typeof body.label === "string" ? body.label.trim().slice(0, 120) : "";
     const user = await createUser(label || null);
     return sendJson(res, 200, { success: true, user });
+  }
+
+  if (req.method === "DELETE") {
+    const body = await readJsonBody(req);
+    const userId =
+      typeof body.id === "string" && body.id.trim()
+        ? body.id.trim().toUpperCase()
+        : null;
+    if (!userId) {
+      return sendJson(res, 400, { error: "Identifiant utilisateur requis" });
+    }
+
+    const users = await listUsers();
+    if (!users.some((u) => u.id === userId)) {
+      return sendJson(res, 404, { error: "Utilisateur introuvable" });
+    }
+
+    await resetUserVotesForDate(userId, todayStr());
+    return sendJson(res, 200, { success: true, user: userId });
   }
 
   return sendJson(res, 405, { error: "Méthode non supportée" });

@@ -474,17 +474,47 @@ function renderUsersList() {
     list.innerHTML = `<div class="empty-state">Aucun identifiant créé pour l&#39;instant.</div>`;
     return;
   }
+
+  const todayVotesByUser = store._todayVotedByUser || {};
+
   list.innerHTML = allUsers
-    .map(
-      (u) => `<div class="comment-card">
+    .map((u) => {
+      const todayCats = Array.isArray(todayVotesByUser[u.id])
+        ? todayVotesByUser[u.id]
+        : [];
+      return `<div class="comment-card">
         <span class="cc-score" style="background:var(--blue)">${escapeHtml(u.id)}</span>
-        <div>
+        <div style="flex:1;">
           <div class="cc-text">${u.label ? escapeHtml(u.label) : "<em>Sans étiquette</em>"}</div>
           <div class="cc-meta">Créé le ${formatDateTimeShort(u.created_at)}</div>
+          <div class="cc-meta">${
+            todayCats.length
+              ? `A voté ${todayCats.length} volet${todayCats.length > 1 ? "s" : ""} aujourd&#39;hui (${escapeHtml(todayCats.join(", "))})`
+              : "Aucun vote aujourd&#39;hui"
+          }</div>
         </div>
-      </div>`,
-    )
+        ${todayCats.length
+          ? `<button class="btn-primary" data-user="${escapeHtml(u.id)}">Réactiver aujourd&#39;hui</button>`
+          : ""}
+      </div>`;
+    })
     .join("");
+
+  list.querySelectorAll("button[data-user]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const userId = btn.dataset.user;
+      showModal({
+        title: "Réactiver le vote du jour",
+        message: `Réinitialiser les votes d'aujourd'hui pour ${userId} afin qu'il puisse voter à nouveau ?`,
+        confirmLabel: "Réactiver",
+        cancelLabel: "Annuler",
+        onConfirm: async () => {
+          closeModal();
+          await handleResetUserToday(userId);
+        },
+      });
+    });
+  });
 }
 
 function renderHistoryUserSelect() {
@@ -533,6 +563,43 @@ async function refreshUsers() {
   }
   renderUsersList();
   renderHistoryUserSelect();
+}
+
+async function handleResetUserToday(userId) {
+  const btn = document.querySelector(`button[data-user="${userId}"]`);
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add("spinning");
+  }
+
+  try {
+    const res = await fetch(USERS_URL, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: userId }),
+    });
+
+    if (res.status === 401) {
+      window.location.href = LOGIN_URL;
+      return;
+    }
+    if (!res.ok) throw new Error("bad status " + res.status);
+
+    await refresh();
+    showToast(`Les votes d'aujourd'hui pour ${userId} ont été réinitialisés.`);
+  } catch {
+    showModal({
+      title: "Erreur",
+      message: "Impossible de réactiver le vote pour cet utilisateur. Réessayez.",
+      confirmLabel: "OK",
+      onConfirm: closeModal,
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove("spinning");
+    }
+  }
 }
 
 async function createUser() {
