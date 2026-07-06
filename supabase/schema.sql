@@ -33,3 +33,19 @@ create unique index if not exists idx_votes_user_category_date
   on votes(user_id, category, date)
   where user_id is not null;
 
+-- Table pour archiver les votes lorsque l'admin réinitialise un identifiant
+create table if not exists archived_votes (
+  id bigserial primary key,
+  original_id bigint,
+  user_id text,
+  category text not null,
+  value int,
+  date text,
+  comment text,
+  created_at timestamptz,
+  archived_at timestamptz not null default now()
+);
+
+create index if not exists idx_archived_votes_archived_at on archived_votes(archived_at desc);
+create index if not exists idx_archived_votes_user on archived_votes(user_id);
+
