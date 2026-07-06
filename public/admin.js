@@ -494,7 +494,7 @@ function renderUsersList() {
           }</div>
         </div>
         ${todayCats.length
-          ? `<button class="btn-primary" data-user="${escapeHtml(u.id)}">Réactiver aujourd&#39;hui</button>`
+          ? `<button type="button" class="btn-refresh btn-primary" data-user="${escapeHtml(u.id)}"><span>Réactiver aujourd&#39;hui</span></button>`
           : ""}
       </div>`;
     })
@@ -573,24 +573,28 @@ async function handleResetUserToday(userId) {
   }
 
   try {
-    const res = await fetch(USERS_URL, {
+    const res = await fetch(`${USERS_URL}?id=${encodeURIComponent(userId)}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: userId }),
     });
 
     if (res.status === 401) {
       window.location.href = LOGIN_URL;
       return;
     }
-    if (!res.ok) throw new Error("bad status " + res.status);
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const message =
+        data?.error || "Impossible de réactiver le vote pour cet utilisateur. Réessayez.";
+      throw new Error(message);
+    }
 
     await refresh();
     showToast(`Les votes d'aujourd'hui pour ${userId} ont été réinitialisés.`);
-  } catch {
+  } catch (err) {
     showModal({
       title: "Erreur",
-      message: "Impossible de réactiver le vote pour cet utilisateur. Réessayez.",
+      message: err.message || "Impossible de réactiver le vote pour cet utilisateur. Réessayez.",
       confirmLabel: "OK",
       onConfirm: closeModal,
     });

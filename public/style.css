@@ -1224,6 +1224,12 @@ main {
   align-items: flex-start;
 }
 
+.comment-card button {
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+}
+
 .comment-card .cc-score {
   flex-shrink: 0;
   width: 30px;

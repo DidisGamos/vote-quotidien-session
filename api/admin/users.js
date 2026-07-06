@@ -49,10 +49,16 @@ export default async function handler(req, res) {
 
   if (req.method === "DELETE") {
     const body = await readJsonBody(req);
-    const userId =
+    const queryId =
+      typeof req.query?.id === "string" && req.query.id.trim()
+        ? req.query.id.trim().toUpperCase()
+        : null;
+    const bodyId =
       typeof body.id === "string" && body.id.trim()
         ? body.id.trim().toUpperCase()
         : null;
+    const userId = queryId || bodyId;
+
     if (!userId) {
       return sendJson(res, 400, { error: "Identifiant utilisateur requis" });
     }
