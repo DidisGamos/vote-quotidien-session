@@ -861,4 +861,14 @@ async function init() {
   }, 30000);
 }
 
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  toast.innerHTML = `<span class="dot"></span> ${msg}`;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
 init();
